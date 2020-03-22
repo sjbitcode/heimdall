@@ -1,0 +1,60 @@
+version: '2'
+services:
+
+  # Python base app
+  heimdall-base:
+    container_name: heimdall-base
+    build: .
+    environment:
+      DATABASE_DSN: postgresql://postgres:postgres@db:5432/postgres
+      ENV: dev
+      LOG_LEVEL: INFO
+
+
+  # ---------------------------------------------
+  # Services for dev / prod.
+  # ---------------------------------------------
+
+  # Python app
+  heimdall:
+    image: sjbitcode/heimdall
+    container_name: heimdall
+    extends: heimdall-base
+    ports:
+      - 8000:8000
+    volumes:
+      - ${PWD}:/usr/src
+    depends_on:
+      - db
+
+  # Postgres database
+  db:
+    image: postgres:11-alpine
+    container_name: db
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+
+  # ---------------------------------------------
+  # Services for testing.
+  # ---------------------------------------------
+
+  # Python test app
+  heimdall-test:
+    image: sjbitcode/heimdall-test
+    container_name: heimdall-test
+    extends: heimdall-base
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - ENV=test
+    volumes:
+      - ${PWD}:/usr/src
+    depends_on:
+      - db
+    environment:
+        ENV: test
